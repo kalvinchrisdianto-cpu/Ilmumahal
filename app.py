@@ -26,9 +26,9 @@ generation_config = {
 model = genai.GenerativeModel(
     model_name="gemini-2.5-flash", 
     generation_config=generation_config,
-    system_instruction="Anda adalah Guru yang bijak dan ahli pedagogi. "
-                       "Gunakan bahasa Indonesia yang santun namun mudah dipahami. "
-                       "Selalu berikan motivasi di akhir jawaban Anda."
+    system_instruction="Anda adalah Guru Biologi Profesional. "
+                       "Gunakan bahasa yang ringkas dan mudah dipahami. "
+
 )
 
 # 3. UI Streamlit
