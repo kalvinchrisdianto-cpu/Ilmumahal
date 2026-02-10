@@ -3,67 +3,69 @@ import google.generativeai as genai
 import os
 from dotenv import load_dotenv
 
-# 1. Memuat API Key dari file .env atau Secrets
+# 1. Memuat API Key (Prioritas: Secrets Streamlit, lalu .env)
 load_dotenv()
-api_key = os.getenv("GEMINI_API_KEY")
+api_key = os.getenv("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY")
 
-# Konfigurasi AI Studio
 if api_key:
     genai.configure(api_key=api_key)
 else:
-    st.error("API Key tidak ditemukan. Pastikan sudah disetting di Environment Variables.")
+    st.error("API Key tidak ditemukan! Masukkan di Secrets Streamlit atau file .env")
+    st.stop()
 
-# 2. Pengaturan Model & Instruksi Peran (Guru)
+# 2. Konfigurasi Model (Menggunakan Generasi 2)
 generation_config = {
-    "temperature": 0.7,
-    "top_p": 1,
-    "top_k": 1,
-    "max_output_tokens": 2048,
+    "temperature": 0.8,
+    "top_p": 0.95,
+    "top_k": 40,
+    "max_output_tokens": 4096,
 }
 
+# Inisialisasi model
+# Gunakan 'gemini-2.0-flash-exp' untuk performa tercepat generasi 2
 model = genai.GenerativeModel(
-    model_name="gemini-2.5-flash",
+    model_name="gemini-2.5-flash", 
     generation_config=generation_config,
-    system_instruction="Anda adalah seorang Guru yang bijak, sabar, dan edukatif. "
-                       "Tugas Anda adalah menjawab pertanyaan siswa dengan bahasa yang mudah dimengerti, "
-                       "memberikan contoh, dan selalu menyemangati siswa untuk belajar."
+    system_instruction="Anda adalah Guru yang bijak dan ahli pedagogi. "
+                       "Gunakan bahasa Indonesia yang santun namun mudah dipahami. "
+                       "Selalu berikan motivasi di akhir jawaban Anda."
 )
 
 # 3. UI Streamlit
-st.set_page_config(page_title="Tanya Guru AI", page_icon="🎓")
-st.title("🎓 Chat dengan Guru AI")
-st.caption("Tanyakan apa saja, Bapak/Ibu Guru siap membantu!")
+st.set_page_config(page_title="Guru AI Gen 2.5", page_icon="🎓")
+st.title("🎓 Guru AI (Generasi 2.5)")
+st.write("Belajar jadi lebih mudah dengan bantuan Bapak/Ibu Guru AI.")
 
-# Inisialisasi riwayat obrolan (Stateful/2-arah)
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+# Inisialisasi riwayat chat (Agar Komunikasi 2 Arah)
+if "chat_session" not in st.session_state:
+    # Memulai session chat pertama kali
+    st.session_state.chat_session = model.start_chat(history=[])
 
-# Menampilkan riwayat chat
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+# Menampilkan riwayat chat dari session_state
+for message in st.session_state.chat_session.history:
+    # Konversi label role dari Google ke Streamlit
+    role = "assistant" if message.role == "model" else "user"
+    with st.chat_message(role):
+        st.markdown(message.parts[0].text)
 
-# Input pengguna
-if prompt := st.chat_input("Apa yang ingin kamu tanyakan hari ini?"):
-    # Tambah chat user ke riwayat
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
-
-    # Respon AI
-    with st.chat_message("assistant"):
-        message_placeholder = st.empty()
-        full_response = ""
-        
-        # Mengirim pesan ke Gemini
-        chat = model.start_chat(history=[])
-        response = chat.send_message(prompt, stream=True)
-        
-        for chunk in response:
-            full_response += chunk.text
-            message_placeholder.markdown(full_response + "▌")
-        
-        message_placeholder.markdown(full_response)
+# 4. Input dan Respon
+if prompt := st.chat_input("Tanyakan materi pelajaran di sini..."):
+    # Tampilkan pesan user di UI
+    st.chat_message("user").markdown(prompt)
     
-    # Simpan respon asisten ke riwayat
-    st.session_state.messages.append({"role": "assistant", "content": full_response})
+    # Kirim pesan ke model dalam session yang sama
+    with st.chat_message("assistant"):
+        try:
+            # Menggunakan stream untuk pengalaman interaktif
+            response = st.session_state.chat_session.send_message(prompt, stream=True)
+            
+            # Memproses potongan teks yang masuk (streaming)
+            full_response = ""
+            placeholder = st.empty()
+            for chunk in response:
+                full_response += chunk.text
+                placeholder.markdown(full_response + "▌")
+            placeholder.markdown(full_response)
+            
+        except Exception as e:
+            st.error(f"Maaf, terjadi kendala teknis: {str(e)}")
