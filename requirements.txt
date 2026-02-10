@@ -1,2 +1,2 @@
 import streamlit as st
-import google.generative as genai
+import google.generativeai as genai
