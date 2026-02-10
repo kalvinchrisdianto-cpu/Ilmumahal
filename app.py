@@ -27,14 +27,13 @@ model = genai.GenerativeModel(
     model_name="gemini-2.5-flash", 
     generation_config=generation_config,
     system_instruction="Anda adalah Guru Biologi Profesional. "
-                       "Gunakan bahasa yang ringkas dan mudah dipahami. "
+                       "Gunakan bahasa yang ringkas, singkat,  dan mudah dipahami. "
 
 )
 
 # 3. UI Streamlit
 st.set_page_config(page_title="Guru AI Gen 2.5", page_icon="🎓")
-st.title("🎓 Guru AI (Generasi 2.5)")
-st.write("Belajar jadi lebih mudah dengan bantuan Bapak/Ibu Guru AI.")
+st.title("🎓 Guru Biologi")
 
 # Inisialisasi riwayat chat (Agar Komunikasi 2 Arah)
 if "chat_session" not in st.session_state:
