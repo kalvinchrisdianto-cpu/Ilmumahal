@@ -1,2 +1,2 @@
-import streamlit as st
-import google.generativeai as genai
+streamlit as st
+google.generativeai as genai
