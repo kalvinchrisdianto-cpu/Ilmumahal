@@ -20,7 +20,7 @@ model = genai.GenerativeModel(
 )
 
 # 3. UI Streamlit
-st.set_page_config(page_title="Guru AI Multimodal", page_icon="🎓", layout="wide")
+st.set_page_config(page_title="Guru AI Biologi", page_icon="🎓", layout="wide")
 
 # --- SIDEBAR: Menu Riwayat & Unggah File ---
 with st.sidebar:
@@ -42,7 +42,7 @@ with st.sidebar:
         st.session_state.chat_session = model.start_chat(history=[])
         st.rerun()
 
-st.title("🎓 Chat dengan Guru AI")
+st.title("🎓Guru AI Biologi ")
 st.caption("Sekarang Bapak/Ibu Guru bisa membaca file yang kamu unggah!")
 
 # 4. Inisialisasi Riwayat Chat (2-arah)
