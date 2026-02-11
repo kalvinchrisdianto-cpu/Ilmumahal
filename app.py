@@ -22,7 +22,7 @@ generation_config = {
 # Catatan: Gunakan "gemini-1.5-flash" atau "gemini-2.0-flash-exp" 
 # karena versi 2.5 belum dirilis secara resmi di publik API.
 model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash", 
+    model_name="gemini-2.5-flash", 
     generation_config=generation_config,
     system_instruction="Anda adalah Guru Biologi Profesional. Jawab pertanyaan dengan analogi sederhana dan bahasa yang mudah dipahami anak-anak."
 )
