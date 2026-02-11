@@ -1,49 +1,43 @@
 import streamlit as st
 import google.generativeai as genai
 import os
-from dotenv import load_dotenv
 
-# Load API Key
-load_dotenv()
-api_key = os.getenv("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY")
+# Mengambil API Key langsung dari Streamlit Secrets (Lebih aman untuk Cloud)
+api_key = st.secrets.get("GEMINI_API_KEY")
 
 if api_key:
-    genai.configure(api_key=api_key)
+    genai.configure(api_key=api_key)
 else:
-    st.error("API Key belum disetting di Secrets Streamlit!")
-    st.stop()
+    st.error("API Key tidak ditemukan. Sila masukan GEMINI_API_KEY di bagian Settings > Secrets di Streamlit Cloud.")
+    st.stop()
 
-# Konfigurasi Model - Menggunakan 1.5 Flash yang paling stabil untuk deploy
-generation_config = {
-    "temperature": 0.7,
-    "max_output_tokens": 2048,
-}
-
+# Konfigurasi Model
 model = genai.GenerativeModel(
-    model_name="gemini-2.5-flash", # Sangat stabil & cepat
-    generation_config=generation_config,
-    system_instruction="Anda adalah Guru Biologi Profesional. Jawab pertanyaan dengan analogi sederhana dan bahasa yang mudah dipahami anak-anak."
+    model_name="gemini-2.5-flash", # Gunakan versi flash agar cepat dan stabil
+    system_instruction="Anda adalah seorang Guru Biologi Profesional. Jawaban yang anda berikan memuat sebuah analogi sederhana dan bahasa yang mudah dipahami anak anak."
 )
 
-st.set_page_config(page_title="Guru Biologi", page_icon="🎓")
-st.title("🎓 Tanya Guru AI Biologi")
+st.set_page_config(page_title="Tanya Guru AI Biologi", page_icon="🎓")
+st.title("🎓 Chat dengan Guru AI Biologi")
 
-# Memori 2 Arah
-if "chat" not in st.session_state:
-    st.session_state.chat = model.start_chat(history=[])
+# Inisialisasi riwayat obrolan (2-arah)
+if "chat_session" not in st.session_state:
+    st.session_state.chat_session = model.start_chat(history=[])
 
-# Tampilkan history
-for msg in st.session_state.chat.history:
-    role = "assistant" if msg.role == "model" else "user"
-    with st.chat_message(role):
-        st.markdown(msg.parts[0].text)
+# Menampilkan riwayat chat
+for message in st.session_state.chat_session.history:
+    role = "assistant" if message.role == "model" else "user"
+    with st.chat_message(role):
+        st.markdown(message.parts[0].text)
 
-# Input User
-if prompt := st.chat_input("Tanya apa hari ini?"):
-    st.chat_message("user").markdown(prompt)
-    
-    with st.chat_message("assistant"):
-        response = st.session_state.chat.send_message(prompt, stream=True)
-        full_response = st.write_stream(response)
-
-
+# Input pengguna
+if prompt := st.chat_input("Apa yang ingin kamu tanyakan hari ini?"):
+    st.chat_message("user").markdown(prompt)
+    
+    with st.chat_message("assistant"):
+        try:
+            # Respon streaming agar lebih interaktif
+            response = st.session_state.chat_session.send_message(prompt, stream=True)
+            full_response = st.write_stream(response)
+        except Exception as e:
+            st.error(f"Terjadi kesalahan: {e}")
