@@ -1,70 +1,81 @@
 import streamlit as st
 import google.generativeai as genai
 import os
-from dotenv import load_dotenv
+from dotenv import load_dotenv 
 
-# 1. Memuat API Key (Prioritas: Secrets Streamlit, lalu .env)
-load_dotenv()
-api_key = os.getenv("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY")
+# 1. Konfigurasi API Key
+api_key = st.secrets.get("GEMINI_API_KEY")
 
 if api_key:
     genai.configure(api_key=api_key)
 else:
-    st.error("API Key tidak ditemukan! Masukkan di Secrets Streamlit atau file .env")
+    st.error("API Key tidak ditemukan. Masukkan GEMINI_API_KEY di Secrets Streamlit.")
     st.stop()
 
-# 2. Konfigurasi Model (Menggunakan Generasi 2)
-generation_config = {
-    "temperature": 0.8,
-    "top_p": 0.95,
-    "top_k": 40,
-    "max_output_tokens": 4096,
-}
-
-# Inisialisasi model
-# Gunakan 'gemini-2.0-flash-exp' untuk performa tercepat generasi 2
+# 2. Inisialisasi Model (Gemini 1.5 Flash mendukung berbagai jenis file/multimodal)
 model = genai.GenerativeModel(
-    model_name="gemini-2.5-flash", 
-    generation_config=generation_config,
-    system_instruction="Anda adalah Guru Biologi Profesional. "
-                       "Gunakan bahasa yang ringkas, singkat,  dan mudah dipahami. "
-
+    model_name="gemini-2.5-flash",
+    system_instruction="Anda adalah Guru Biologi profesional. Anda bisa menganalisis file yang diunggah dan menjawab pertanyaan siswa."
+    "Jawaban yang anda berikan mudah dipahami oleh siswa dan jelaskan dengan analogi dengan bahasa anak sd."
 )
 
 # 3. UI Streamlit
-st.set_page_config(page_title="Guru AI Gen 2.5", page_icon="🎓")
-st.title("🎓 Guru Biologi")
+st.set_page_config(page_title="Guru AI Multimodal", page_icon="🎓", layout="wide")
 
-# Inisialisasi riwayat chat (Agar Komunikasi 2 Arah)
+# --- SIDEBAR: Menu Riwayat & Unggah File ---
+with st.sidebar:
+    st.title("⚙️ Menu Guru AI")
+    
+    # Fitur Unggah File
+    uploaded_file = st.file_uploader(
+        "Unggah materi (PDF, Gambar, Teks, dll.)", 
+        type=["pdf", "png", "jpg", "jpeg", "txt", "docx"]
+    )
+    
+    if uploaded_file:
+        st.success(f"File '{uploaded_file.name}' berhasil diunggah!")
+
+    st.divider()
+    
+    # Fitur Reset/Hapus Riwayat Chat
+    if st.button("🗑️ Hapus Riwayat Chat", use_container_width=True):
+        st.session_state.chat_session = model.start_chat(history=[])
+        st.rerun()
+
+st.title("🎓 Chat dengan Guru AI")
+st.caption("Sekarang Bapak/Ibu Guru bisa membaca file yang kamu unggah!")
+
+# 4. Inisialisasi Riwayat Chat (2-arah)
 if "chat_session" not in st.session_state:
-    # Memulai session chat pertama kali
     st.session_state.chat_session = model.start_chat(history=[])
 
-# Menampilkan riwayat chat dari session_state
+# Menampilkan riwayat chat
 for message in st.session_state.chat_session.history:
-    # Konversi label role dari Google ke Streamlit
     role = "assistant" if message.role == "model" else "user"
     with st.chat_message(role):
         st.markdown(message.parts[0].text)
 
-# 4. Input dan Respon
-if prompt := st.chat_input("Tanyakan materi pelajaran di sini..."):
-    # Tampilkan pesan user di UI
+# 5. Logika Input & Respon
+if prompt := st.chat_input("Tanyakan sesuatu tentang materi..."):
     st.chat_message("user").markdown(prompt)
     
-    # Kirim pesan ke model dalam session yang sama
     with st.chat_message("assistant"):
         try:
-            # Menggunakan stream untuk pengalaman interaktif
-            response = st.session_state.chat_session.send_message(prompt, stream=True)
+            content_to_send = [prompt]
             
-            # Memproses potongan teks yang masuk (streaming)
-            full_response = ""
-            placeholder = st.empty()
-            for chunk in response:
-                full_response += chunk.text
-                placeholder.markdown(full_response + "▌")
-            placeholder.markdown(full_response)
+            # Jika ada file yang diunggah, masukkan ke dalam input AI
+            if uploaded_file is not None:
+                file_bytes = uploaded_file.read()
+                # Mengonversi file ke format yang dipahami Gemini
+                file_data = {"mime_type": uploaded_file.type, "data": file_bytes}
+                content_to_send.append(file_data)
+            
+            # Respon streaming
+            response = st.session_state.chat_session.send_message(content_to_send, stream=True)
+            full_response = st.write_stream(response)
             
         except Exception as e:
-            st.error(f"Maaf, terjadi kendala teknis: {str(e)}")
+            st.error(f"Terjadi kesalahan: {e}")
+
+# Footer informasi riwayat
+st.sidebar.info(f"Jumlah pesan dalam sesi ini: {len(st.session_state.chat_session.history)}")
