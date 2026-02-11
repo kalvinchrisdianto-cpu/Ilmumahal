@@ -3,7 +3,7 @@ import google.generativeai as genai
 import os
 from dotenv import load_dotenv
 
-# Load API Key
+# 1. Load API Key
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY")
 
@@ -13,30 +13,46 @@ else:
     st.error("API Key belum disetting di Secrets Streamlit!")
     st.stop()
 
-# Konfigurasi Model
+# 2. Konfigurasi Model
 generation_config = {
     "temperature": 0.7,
     "max_output_tokens": 2048,
 }
 
+# Catatan: Gunakan "gemini-1.5-flash" atau "gemini-2.0-flash-exp" 
+# karena versi 2.5 belum dirilis secara resmi di publik API.
 model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash", # Disarankan menggunakan 1.5-flash untuk stabilitas file upload
+    model_name="gemini-1.5-flash", 
     generation_config=generation_config,
     system_instruction="Anda adalah Guru Biologi Profesional. Jawab pertanyaan dengan analogi sederhana dan bahasa yang mudah dipahami anak-anak."
 )
 
 st.set_page_config(page_title="Guru Biologi", page_icon="🎓", layout="wide")
 
-# --- MENU RIWAYAT CHAT (SIDEBAR) ---
+# --- SIDEBAR: Menu Riwayat & Unggah File ---
 with st.sidebar:
-    st.title("📜 Riwayat Chat")
-    if st.button("🗑️ Hapus Semua Riwayat"):
+    st.title("📂 Menu Pembelajaran")
+    
+    # Fitur Unggah File
+    uploaded_file = st.file_uploader(
+        "Unggah materi biologi (Gambar/PDF/Teks)", 
+        type=["pdf", "png", "jpg", "jpeg", "txt"]
+    )
+    
+    if uploaded_file:
+        st.info(f"File Terdeteksi: {uploaded_file.name}")
+
+    st.divider()
+    
+    # Fitur Riwayat Chat: Tombol Reset
+    st.subheader("Riwayat Sesi")
+    if st.button("🗑️ Mulai Sesi Baru / Hapus Riwayat"):
         st.session_state.chat = model.start_chat(history=[])
         st.rerun()
     
-    st.divider()
-    st.info("Riwayat percakapan Anda tersimpan di sini selama sesi aktif.")
+    st.caption("Menghapus riwayat akan menyegarkan ingatan Guru AI.")
 
+# --- TAMPILAN UTAMA ---
 st.title("🎓 Tanya Guru AI Biologi")
 
 # Memori 2 Arah
@@ -49,28 +65,22 @@ for msg in st.session_state.chat.history:
     with st.chat_message(role):
         st.markdown(msg.parts[0].text)
 
-# --- FITUR UPLOAD & INPUT (BERDAMPINGAN) ---
-# Membuat dua kolom: satu untuk chat input (lebar), satu untuk upload file (kecil)
-col_input, col_file = st.columns([4, 1])
-
-with col_file:
-    uploaded_file = st.file_uploader("", label_visibility="collapsed", type=["pdf", "png", "jpg", "jpeg", "txt"])
-
-with col_input:
-    prompt = st.chat_input("Tanya apa hari ini?")
-
-# Logika Pengiriman Pesan
-if prompt:
+# Input User
+if prompt := st.chat_input("Tanya apa hari ini?"):
     st.chat_message("user").markdown(prompt)
     
     with st.chat_message("assistant"):
         try:
+            # Menggabungkan Teks dan File jika ada
             content_to_send = [prompt]
-            
-            # Jika ada file yang diunggah, masukkan ke konten yang dikirim
-            if uploaded_file is not None:
+            if uploaded_file:
+                # Membaca file sebagai bytes untuk dikirim ke Gemini
                 file_bytes = uploaded_file.read()
-                content_to_send.append({
-                    "mime_type": uploaded_file.type,
-                    "data": file_bytes
-                })
+                content_to_send.append({"mime_type": uploaded_file.type, "data": file_bytes})
+            
+            # Mengirim pesan ke AI
+            response = st.session_state.chat.send_message(content_to_send, stream=True)
+            full_response = st.write_stream(response)
+            
+        except Exception as e:
+            st.error(f"Terjadi kesalahan teknis: {str(e)}")
