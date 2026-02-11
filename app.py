@@ -26,7 +26,7 @@ model = genai.GenerativeModel(
 )
 
 st.set_page_config(page_title="Guru Biologi", page_icon="🎓")
-st.title("🎓 Tanya Guru AI")
+st.title("🎓 Tanya Guru AI Biologi")
 
 # Memori 2 Arah
 if "chat" not in st.session_state:
