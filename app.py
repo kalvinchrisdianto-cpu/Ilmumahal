@@ -2,7 +2,6 @@ import streamlit as st
 import google.generativeai as genai
 import os
 from dotenv import load_dotenv
-from PIL import Image
 
 # 1. Memuat API Key
 load_dotenv()
@@ -11,7 +10,7 @@ api_key = os.getenv("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY")
 if api_key:
     genai.configure(api_key=api_key)
 else:
-    st.error("API Key tidak ditemukan!")
+    st.error("API Key tidak ditemukan! Masukkan di Secrets Streamlit atau file .env")
     st.stop()
 
 # 2. Konfigurasi Model
@@ -25,19 +24,29 @@ generation_config = {
 model = genai.GenerativeModel(
     model_name="gemini-2.5-flash", 
     generation_config=generation_config,
-    system_instruction="Anda adalah Guru Biologi Profesional. Gunakan bahasa yang ringkas dan mudah dipahami."
+    system_instruction="Anda adalah Guru Biologi Profesional. "
+                       "Gunakan bahasa yang ringkas, singkat, dan mudah dipahami."
 )
 
 # 3. UI Streamlit
 st.set_page_config(page_title="Guru AI Gen 2", page_icon="🎓")
 st.title("🎓 Guru Biologi")
 
-# Sidebar untuk Upload File (Menerima semua jenis file)
+# Sidebar untuk File Uploader & Tombol Hapus Riwayat
 with st.sidebar:
-    st.header("Upload Materi")
-    uploaded_file = st.file_uploader("Pilih file (Gambar, PDF, Video, Audio, dll)", type=None) # type=None allows all files
+    st.header("Menu Panel")
+    
+    # Fitur Clear History
+    if st.button("🗑️ Hapus Riwayat Chat"):
+        st.session_state.chat_session = model.start_chat(history=[])
+        st.rerun()
+    
+    st.divider()
+    
+    # File Uploader (Menerima segala jenis file: Gambar, PDF, Video, Audio, dll)
+    uploaded_file = st.file_uploader("Upload materi (Semua tipe file)", type=None)
     if uploaded_file:
-        st.success(f"File terdeteksi: {uploaded_file.name}")
+        st.success(f"File siap: {uploaded_file.name}")
 
 # Inisialisasi riwayat chat
 if "chat_session" not in st.session_state:
@@ -55,7 +64,7 @@ if prompt := st.chat_input("Tanyakan materi pelajaran di sini..."):
     
     with st.chat_message("assistant"):
         try:
-            # logic untuk mengirim pesan (Teks saja atau Teks + File)
+            # Jika ada file yang diupload, kirim bersama prompt
             if uploaded_file:
                 file_content = {
                     "mime_type": uploaded_file.type,
