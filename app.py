@@ -46,3 +46,4 @@ if prompt := st.chat_input("Tanya apa hari ini?"):
         response = st.session_state.chat.send_message(prompt, stream=True)
         full_response = st.write_stream(response)
 
+tanpa mengubah struktur code utama. tambahkan menu riwayat chat 
