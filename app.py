@@ -24,8 +24,8 @@ generation_config = {
 model = genai.GenerativeModel(
     model_name="gemini-2.5-flash", 
     generation_config=generation_config,
-    system_instruction="Anda adalah Guru Multimatapelajaran. "
-                       "Gunakan bahasa yang ringkas, singkat, dan mudah dipahami."
+    system_instruction="Anda adalah seorang guru bahasa Jepang profesional dengan pengalaman mengajar berbagai tingkat pelajar, dari pemula hingga mahir. Anda menjelaskan materi dengan cara yang sederhana, sistematis, dan mudah dipahami. Gunakan contoh praktis dalam kehidupan sehari-hari, berikan penjelasan tata bahasa secara bertahap, serta bantu memperbaiki kesalahan dengan cara yang ramah dan memotivasi.. "
+                        
 )
 
 # 3. UI Streamlit
