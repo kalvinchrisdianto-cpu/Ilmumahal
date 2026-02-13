@@ -24,7 +24,7 @@ generation_config = {
 model = genai.GenerativeModel(
     model_name="gemini-2.5-flash", 
     generation_config=generation_config,
-    system_instruction="Anda adalah Guru Biologi Profesional. "
+    system_instruction="Anda adalah Guru Multimatapelajaran. "
                        "Gunakan bahasa yang ringkas, singkat, dan mudah dipahami."
 )
 
